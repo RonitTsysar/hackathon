@@ -1,16 +1,21 @@
 from socket import *
+import time
 
-class client():
+class Client():
     Port = 13117
 
     def __init__(self):
-        self.conn = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
-        self.conn.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)
+        #UDP
+        self.conn_udp = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
+        self.conn_udp.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)
         
         # Enable broadcasting mode
-        self.conn.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-        self.conn.bind(("", client.Port))
-    
+        self.conn_udp.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+        self.conn_udp.bind(("", Client.Port))
+
+        #TCP
+        self.conn_tcp = socket(AF_INET, SOCK_STREAM)
+
     def close(self):
         self.conn.close()
 
@@ -18,11 +23,17 @@ class client():
         print("Client started, listening for offer requests...")
         data, addr = None, None
         while True:
-            data, addr = self.conn.recvfrom(1024)
-            print(f"Received offer from {addr[0]}, attempting to connect...")
-            break
-        print(f"addr {addr} ")
+            data, addr = self.conn_udp.recvfrom(1024)
+            print(f"Received offer from {addr}, attempting to connect...")
+            break 
+        self.connectingToServer(addr[0])
+    
+    def connectingToServer(self, ip):
+        time.sleep(1)
+        self.conn_tcp.connect((ip, Client.Port))
+        message = "RonitGal"
+        self.conn_tcp.send(message.encode('utf-8'))
 
 if __name__ == "__main__":
-    client = client()
+    client = Client()
     client.lookingForServer()
