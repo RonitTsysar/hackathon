@@ -35,8 +35,8 @@ class Client():
         self.conn_tcp.send(message.encode('utf-8'))
 
     def game_mode(self):
-        message = self.conn_tcp.recv(1024)
-        print(message)
+        opening_message = self.conn_tcp.recv(1024).decode()
+        print(opening_message)
 
 
 if __name__ == "__main__":

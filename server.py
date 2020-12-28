@@ -37,13 +37,12 @@ class Server():
     def handle_clients(self, conn, ip, port):
         # print('Connected by', self.ip)
         print('Connected by', self.tcp_ip)
-        group_name = conn.recv(1024)
+        group_name = conn.recv(1024).decode()
         self.game_groups[group_name] = [conn, ip, port]
 
     def waiting_for_clients(self):
         self.conn_tcp.settimeout(10) # timeout for listening
         self.conn_tcp.listen()
-        print("------------------------------------------------")
         while True:
             try: 
                 (conn, (ip, port)) = self.conn_tcp.accept()
@@ -56,19 +55,6 @@ class Server():
     def game_mode(self):
         # randomly assiging clients to 2 groups
         self.assign_random_groups()
-
-        # print('Welcome to Keyboard Spamming Battle Royal.')
-        # print('Group 1:')
-        # print('==')
-        # for group in self.group_1:
-        #     print(group)
-
-        # print('Group 2:')
-        # print('==')
-        # for group in self.group_2:
-        #     print(group)
-
-        # print('Start pressing keys on your keyboard as fast as you can!!')
 
         # open thread game for each client
         for client, conn_details in self.game_groups.items():
@@ -97,8 +83,20 @@ class Server():
 
     def handle_game_per_client(self, client_conn):
         conn = client_conn[0]
-        opening_message = 'Welcome to Keyboard Spamming Battle Royal.'
+        opening_message = 'Welcome to Keyboard Spamming Battle Royal.\nGroup 1:\n==\n'
+
+        for group in self.group_1:
+            opening_message += group + '\n'
+
+        opening_message += 'group 2:\n==\n'
+
+        for group in self.group_2:
+            opening_message += group + '\n'
+
+        opening_message += 'Start pressing keys on your keyboard as fast as you can!!'
+
         conn.send(opening_message.encode('utf-8'))
+
         
 
 
