@@ -13,7 +13,9 @@ class Server():
         self.ip = self.conn_udp.getsockname()[0]
         #TCP
         self.conn_tcp = socket(AF_INET, SOCK_STREAM)
-        server_address = (self.ip, Server.Port)
+        # server_address = (self.ip, Server.Port)
+        self.tcp_ip = '172.18.0.67'
+        server_address = (self.tcp_ip, Server.Port)
         self.conn_tcp.bind(server_address)
 
         self.is_broadcasting = True
@@ -28,7 +30,8 @@ class Server():
             time.sleep(1)
 
     def handle_clients(self, conn):
-        print('Connected by', self.ip)
+        # print('Connected by', self.ip)
+        print('Connected by', self.tcp_ip)
         data = conn.recv(1024)
         print(f" data {data} ")
 
