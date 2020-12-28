@@ -34,6 +34,12 @@ class Client():
         message = "RonitGal"
         self.conn_tcp.send(message.encode('utf-8'))
 
+    def game_mode(self):
+        opening_message = self.conn_tcp.recv(1024).decode()
+        print(opening_message)
+
+
 if __name__ == "__main__":
     client = Client()
     client.looking_for_server()
+    client.game_mode()
