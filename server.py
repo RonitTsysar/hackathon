@@ -17,7 +17,8 @@ class Server():
         self.ip = self.conn_udp.getsockname()[0]
         # TCP
         self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.tcp_ip = '172.18.0.67'
+        # self.tcp_ip = '172.18.0.67'
+        self.tcp_ip = ''
         server_address = (self.tcp_ip, Server.Port)
         self.conn_tcp.bind(server_address)
 
@@ -25,13 +26,11 @@ class Server():
         self.is_palying = True
         # check if need synchronized dict
         self.game_groups = {}
+        self.tcp_conns = []
         self.group_1 = []
         self.group_2 = []
         self.group_A_counter = AtomicInteger()
         self.group_B_counter = AtomicInteger()
-
-    # def close(self):
-    #     self.conn.close()
 
     def broadcasting(self):
         message = f"Server started, listening on IP address {self.ip}"
@@ -44,6 +43,7 @@ class Server():
         print('Connected by', self.tcp_ip)
         group_name = conn.recv(1024).decode()
         self.game_groups[group_name] = [conn, ip, port]
+        self.tcp_conns.append(conn)
 
     def waiting_for_clients(self):
         # timeout for listening
@@ -53,7 +53,7 @@ class Server():
             try:
                 (conn, (ip, port)) = self.conn_tcp.accept()
                 Thread(target=self.handle_clients,
-                       args=(conn, ip, port)).start()
+                       args=(conn, ip, port), daemon=True).start()
 
             except socket.timeout:
                 self.is_broadcasting = False
@@ -79,22 +79,37 @@ class Server():
         else:
             print('its a tie\nCongratulations to the winners')
 
+        for conn in self.tcp_conns:
+            conn.shutdown(socket.SHUT_RD)
+            # conn.send("try to close".encode('utf-8'))
+            conn.close()
+
+        print(" AFTER CLOSE CONNS")
+        self.clean_up()
+        print("Game over, sending out offerrequests...​")
+
     def handle_group_A_game(self, group_name):
         conn = self.game_groups[group_name][0]
         while self.is_palying:
-            data = conn.recv(1024).decode("utf-8").rstrip()
-            self.group_A_counter.inc()
-        print(self.group_A_counter.value)
+            try:
+                data = conn.recv(1024).decode("utf-8").rstrip()
+                self.group_A_counter.inc()
+            except Exception:
+                pass
+        # print(self.group_A_counter.value)
 
     def handle_group_B_game(self, group_name):
         conn = self.game_groups[group_name][0]
         while self.is_palying:
-            data = conn.recv(1024).decode("utf-8").rstrip()
-            self.group_B_counter.inc()
-        print(self.group_B_counter.value)
+            try:
+                data = conn.recv(1024).decode("utf-8").rstrip()
+                self.group_B_counter.inc()
+            except Exception:
+                pass
+        # print(self.group_B_counter.value)
 
     def assign_random_groups(self):
-        conns = []
+        # conns = []
 
         half_of_groups = int(len(self.game_groups)/2)
         all_groups = list(self.game_groups.keys())
@@ -106,14 +121,14 @@ class Server():
 
             group_name = all_groups[indices_to_choose[chosen_idx]]
             self.group_1.append(group_name)
-            conns.append(self.game_groups[group_name][0])
-            Thread(target=self.handle_group_A_game, args=(group_name,)).start()
+            # self.tcp_conns.append(self.game_groups[group_name][0])
+            Thread(target=self.handle_group_A_game, args=(group_name,), daemon=True).start()
 
-        for i in range(len(all_groups)):
-            group_name = all_groups[i]
+        for i in range(len(indices_to_choose)):
+            group_name = all_groups[indices_to_choose[i]]
             self.group_2.append(group_name)
-            conns.append(self.game_groups[group_name][0])
-            Thread(target=self.handle_group_B_game, args=(group_name,)).start()
+            # self.tcp_conns.append(self.game_groups[group_name][0])
+            Thread(target=self.handle_group_B_game, args=(group_name,), daemon=True).start()
 
         # prepering the opening message
         opening_message = 'Welcome to Keyboard Spamming Battle Royal.\nGroup 1:\n==\n'
@@ -124,26 +139,39 @@ class Server():
             opening_message += group + '\n'
         opening_message += 'Start pressing keys on your keyboard as fast as you can!!'
 
+        self.is_palying = True
         # sending opening message to all clients
-        for conn in conns:
+        for conn in self.tcp_conns:
             conn.send(opening_message.encode('utf-8'))
 
+    def clean_up(self):
+        self.is_broadcasting = True
+        # self.is_palying = True
+
+        self.game_groups = {}
+        self.tcp_conns = []
+        self.group_1 = []
+        self.group_2 = []
+        self.group_A_counter.value = 0
+        self.group_B_counter.value = 0
+
     def serve(self):
-        # while True:
-        t1 = Thread(target=self.broadcasting, daemon=True)
-        t2 = Thread(target=self.waiting_for_clients, daemon=True)
+        while True:
+            t1 = Thread(target=self.broadcasting, daemon=True)
+            t2 = Thread(target=self.waiting_for_clients, daemon=True)
 
-        t1.start()
-        t2.start()
+            t1.start()
+            t2.start()
 
-        t1.join()
-        t2.join()
+            t1.join()
+            t2.join()
 
-        self.game_mode()
-        time.sleep(10)
-        self.is_palying = False
+            self.game_mode()
 
-        self.finish_game()
+            time.sleep(10)
+            self.is_palying = False
+
+            self.finish_game()
 
         # cleaning for another game
 

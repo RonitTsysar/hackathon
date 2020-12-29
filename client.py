@@ -1,6 +1,7 @@
 import socket
 import time
 from curtsies import Input
+from threading import Thread
 
 
 class Client():
@@ -18,8 +19,9 @@ class Client():
         # TCP
         self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    # def close(self):
-    #     self.conn.close()
+    def close(self):
+        self.conn_udp.close()
+        self.conn_tcp.close()
 
     def looking_for_server(self):
         print("Client started, listening for offer requests...")
@@ -37,16 +39,38 @@ class Client():
         self.conn_tcp.send(message.encode('utf-8'))
 
     def game_mode(self):
-        opening_message = self.conn_tcp.recv(1024).decode()
-        print(opening_message)
+        with Input(keynames="curtsies", sigint_event=True) as input_generator:
+            try:
+                while self.is_palying:
+                    key = input_generator.send(0.1)
+                    if key:
+                        print(key)
+                        self.conn_tcp.send((key + '\n').encode('utf-8'))
+            except Exception:
+                return
 
-        with Input(keynames='curtsies') as input_generator:
-            for e in input_generator:
-                self.conn_tcp.send((e + '\n').encode('utf-8'))
-                print(e)
+    def recv_msgs(self):
+        while True:
+            message = self.conn_tcp.recv(1024)
+            if not message:
+                print("----------- END -----------")
+                self.is_palying = False
+                return
+            print(message.decode())
 
 
 if __name__ == "__main__":
     client = Client()
     client.looking_for_server()
-    client.game_mode()
+
+    client.is_palying = True
+    t1 = Thread(target=client.game_mode, daemon=True)
+    t2 = Thread(target=client.recv_msgs, daemon=True)
+
+    t1.start()
+    t2.start()
+
+    t1.join()
+    t2.join()
+
+    client.close()
