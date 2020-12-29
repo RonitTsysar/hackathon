@@ -12,7 +12,7 @@ class AtomicInteger():
             return self._value
 
     def dec(self, d=1):
-        return self.inc(-d)    
+        return self.inc(-d) 
 
     @property
     def value(self):
