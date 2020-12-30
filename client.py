@@ -60,7 +60,7 @@ class Client():
             time.sleep(1)
             self.connect_tcp(ip, port)
         except Exception as e:
-            print(f" connection failed {e}")
+            print(f" connection failed , reconnecting ...")
             self.is_palying = False
             return
 
