@@ -31,9 +31,9 @@ class Client():
         self.is_palying = False
         self.name = name
 
-    def connect_tcp(self, ip):
+    def connect_tcp(self, ip, port):
         self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.conn_tcp.connect((ip, Client.Port))
+        self.conn_tcp.connect((ip, port))
 
     def close(self):
         self.conn_tcp.close()
@@ -52,13 +52,13 @@ class Client():
             if message[0] == self.magicCookie and message[1] == self.message_type:
                 print(f"Received offer from {addr[0]}, attempting to connect...")
                 break
-        self.connecting_to_server(addr[0])
+        self.connecting_to_server(addr[0], int(message[2]))
 
-    def connecting_to_server(self, ip):
+    def connecting_to_server(self, ip, port):
         try:
             # TODO - fix that
             time.sleep(1)
-            self.connect_tcp(ip)
+            self.connect_tcp(ip, port)
         except Exception as e:
             print(f" connection failed {e}")
             self.is_palying = False
