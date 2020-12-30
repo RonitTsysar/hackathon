@@ -1,10 +1,11 @@
 import socket
 import time
 import random
+import sys
 from threading import Thread
 from atomicInt import AtomicInteger
 from struct import pack
-
+from struct import calcsize
 
 class Server():
     Port = 13117
@@ -25,10 +26,9 @@ class Server():
         # TCP
         self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.tcp_ip = '172.18.0.67'
-        # self.tcp_ip = ''
         server_address = (self.tcp_ip, Server.Port)
         self.conn_tcp.bind(server_address)
-
+        
         self.is_broadcasting = True
         self.is_palying = True
         # check if need synchronized dict
@@ -39,13 +39,11 @@ class Server():
         self.group_A_counter = AtomicInteger()
         self.group_B_counter = AtomicInteger()
 
+
     def broadcasting(self):
-        # message = f"Server started, listening on IP address {self.ip}"
-        # while self.is_broadcasting:
-        #     self.conn_udp.sendto(message.encode('utf-8'),
-        #                          ('<broadcast>', Server.Port))
-        #     time.sleep(1)
+        # TODO - change the print - not use self.tcp_ip
         print(f"Server started, listening on IP address {self.tcp_ip}")
+
         message = pack(self.udp_format, self.magicCookie, self.message_type, Server.Port)
         while self.is_broadcasting:
             self.conn_udp.sendto(message,
@@ -60,6 +58,8 @@ class Server():
 
     def waiting_for_clients(self):
         # timeout for listening
+        #self.open_tcp_connectio()
+
         self.conn_tcp.settimeout(10)
         self.conn_tcp.listen()
         while True:
@@ -109,7 +109,6 @@ class Server():
                 self.group_A_counter.inc()
             except Exception:
                 pass
-        # print(self.group_A_counter.value)
 
     def handle_group_B_game(self, group_name):
         conn = self.game_groups[group_name][0]
@@ -119,10 +118,9 @@ class Server():
                 self.group_B_counter.inc()
             except Exception:
                 pass
-        # print(self.group_B_counter.value)
 
     def assign_random_groups(self):
-        # conns = []
+        print(f" number of groups ------> {len(self.game_groups)}")
 
         half_of_groups = int(len(self.game_groups)/2)
         all_groups = list(self.game_groups.keys())

@@ -2,7 +2,7 @@ import socket
 import time
 from curtsies import Input
 from threading import Thread
-from struct import unpack
+import struct
 
 
 class Client():
@@ -23,36 +23,47 @@ class Client():
         self.conn_udp.bind(("", Client.Port))
 
         # TCP
-        self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        
+        self.is_palying = False
 
     def close(self):
-        self.conn_udp.close()
+        # self.conn_udp.close()888
         self.conn_tcp.close()
+        self.conn_tcp = None
 
     def looking_for_server(self):
-        # print("Client started, listening for offer requests...")
-        # data, addr = None, None
-        # while True:
-        #     data, addr = self.conn_udp.recvfrom(1024)
-        #     print(f"Received offer from {addr}, attempting to connect...")
-        #     break
-        # self.connecting_to_server(addr[0])
         print("Client started, listening for offer requests...")
         data, addr = None, None
         while True:
             data, addr = self.conn_udp.recvfrom(1024)
             # receive only udp messages of the format
-            message = unpack(self.udp_format, data)
+            try:
+                message = struct.unpack(self.udp_format, data)
+            except struct.error:
+                return
+            print(f"message -> {message}")
             if message[0] == self.magicCookie and message[1] == self.message_type:
                 print(f"Received offer from {addr[0]}, attempting to connect...")
-            break
+                break
         self.connecting_to_server(addr[0])
 
     def connecting_to_server(self, ip):
-        time.sleep(1)
-        self.conn_tcp.connect((ip, Client.Port))
+        try:
+            # TODO - fix that
+            time.sleep(1)
+
+            self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.conn_tcp.connect((ip, Client.Port))
+        except Exception:
+            print(" connection failed ")
+            self.is_palying = False
+            return
+            
         message = "RonitGal"
         self.conn_tcp.send(message.encode('utf-8'))
+        self.is_palying = True
+
 
     def game_mode(self):
         with Input(keynames="curtsies", sigint_event=True) as input_generator:
@@ -75,18 +86,20 @@ class Client():
             print(message.decode())
 
 
+
 if __name__ == "__main__":
     client = Client()
-    client.looking_for_server()
+    while True:
+        client.looking_for_server()
 
-    client.is_palying = True
-    t1 = Thread(target=client.game_mode, daemon=True)
-    t2 = Thread(target=client.recv_msgs, daemon=True)
+        if client.is_palying:
+            t1 = Thread(target=client.game_mode, daemon=True)
+            t2 = Thread(target=client.recv_msgs, daemon=True)
 
-    t1.start()
-    t2.start()
+            t1.start()
+            t2.start()
 
-    t1.join()
-    t2.join()
+            t1.join()
+            t2.join()
 
-    client.close()
+            client.close()
