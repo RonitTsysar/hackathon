@@ -1,7 +1,7 @@
 import socket
 import time
 import random
-import sys
+import colors
 from threading import Thread
 from atomicInt import AtomicInteger
 from struct import pack
@@ -25,8 +25,8 @@ class Server():
 
         # TCP
         self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.tcp_ip = '172.18.0.67'
-        # self.tcp_ip = ''
+        # self.tcp_ip = '172.18.0.67'
+        self.tcp_ip = ''
         server_address = (self.tcp_ip, Server.Port)
         self.conn_tcp.bind(server_address)
 
@@ -42,7 +42,7 @@ class Server():
 
     def broadcasting(self):
         # TODO - change the print - not use self.tcp_ip
-        print(f"Server started, listening on IP address {self.tcp_ip}")
+        print(f"{colors.Magenta}Server started, listening on IP address {self.tcp_ip}{colors.Reset}")
 
         message = pack(self.udp_format, self.magicCookie, self.message_type, Server.Port)
         while self.is_broadcasting:
@@ -51,10 +51,8 @@ class Server():
             time.sleep(1)
 
     def handle_clients(self, conn, ip, port):
-        # print('Connected by', self.tcp_ip)
-        
         group_name = conn.recv(1024).decode()
-        # print(f"Connected by -- > {group_name}")
+        print(f"{colors.Bright_Magenta}     {group_name} connected with {self.tcp_ip} ip {colors.Reset} ")
 
         self.game_groups[group_name] = [conn, ip, port]
         self.tcp_conns.append(conn)
@@ -81,14 +79,14 @@ class Server():
         b = self.group_B_counter.value
 
         # prepering the summary message
-        summary_message = 'Game over!\nGroup 1 typed in ' + str(a) + ' characters. Group 2 typed in ' + str(b) + ' characters.\n'
+        summary_message = f'{colors.Bright_Cyan}Game over!{colors.Reset}\nGroup 1 typed in ' + str(a) + ' characters. Group 2 typed in ' + str(b) + ' characters.\n'
         if(a > b):
-            summary_message += 'Group 1 wins!\nCongratulations to the winners:\n=='
+            summary_message += 'Group 1 wins!\nCongratulations to the winners:\n==\n'
             for group in self.group_1:
                 summary_message += group + '\n'
-        
+
         elif(b > a):
-            summary_message += 'Group 2 wins!\nCongratulations to the winners:\n=='
+            summary_message += f'Group 2 wins!\n{colors.Bright_Cyan}Congratulations to the winners:{colors.Reset}\n==\n'
             for group in self.group_2:
                 summary_message += group + '\n'
 
@@ -108,18 +106,19 @@ class Server():
             except:
                 pass
 
-        # print(" AFTER CLOSE CONNS")
         self.clean_up()
-        print("Game over, sending out offerrequests...​")
+        print(f"{colors.Yellow}======================================={colors.Reset}​")
+        print(f"{colors.Magenta}Game over, sending out offerrequests...{colors.Reset}​")
+        print(f"{colors.Yellow}======================================={colors.Reset}​")
 
     def handle_group_A_game(self, group_name):
         conn = self.game_groups[group_name][0]
         while self.is_palying:
-            try:
+            # try:
                 data = conn.recv(1024).decode("utf-8").rstrip()
                 self.group_A_counter.inc()
-            except Exception:
-                pass
+            # except Exception:
+                # pass
 
     def handle_group_B_game(self, group_name):
         conn = self.game_groups[group_name][0]
@@ -133,7 +132,7 @@ class Server():
     def assign_random_groups(self):
         # no game if there are no clients
         if len(self.game_groups) < 1:
-            print("Threr are less then 1 client connected in this game.")
+            print(f"{colors.Yellow}Threr are less then 1 client connected in this game.{colors.Reset}")
             return
 
         half_of_groups = int(len(self.game_groups)/2)
@@ -158,13 +157,13 @@ class Server():
             Thread(target=self.handle_group_B_game, args=(group_name,), daemon=True).start()
 
         # prepering the opening message
-        opening_message = 'Welcome to Keyboard Spamming Battle Royal.\nGroup 1:\n==\n'
+        opening_message = f'{colors.Bright_Cyan}Welcome to Keyboard Spamming Battle Royal.{colors.Reset}\n{colors.Bright_Cyan}Group 1:\n=={colors.Reset}\n'
         for group in self.group_1:
             opening_message += group + '\n'
-        opening_message += 'group 2:\n==\n'
+        opening_message += f'{colors.Bright_Cyan}Group 2:\n=={colors.Reset}\n'
         for group in self.group_2:
             opening_message += group + '\n'
-        opening_message += 'Start pressing keys on your keyboard as fast as you can!!'
+        opening_message += f'{colors.Bright_Cyan}Start pressing keys on your keyboard as fast as you can!!{colors.Reset}'
 
         # sending opening message to all clients
         for conn in self.tcp_conns:

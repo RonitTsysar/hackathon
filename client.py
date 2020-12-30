@@ -4,6 +4,7 @@ from curtsies import Input
 from threading import Thread
 import struct
 import sys
+import colors
 
 
 class Client():
@@ -39,7 +40,7 @@ class Client():
         self.conn_tcp = None
 
     def looking_for_server(self):
-        print("Client started, listening for offer requests...")
+        print(f"{colors.Yellow}Client started, listening for offer requests...{colors.Reset}")
         data, addr = None, None
         while True:
             data, addr = self.conn_udp.recvfrom(1024)
