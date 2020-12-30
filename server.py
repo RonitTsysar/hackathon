@@ -3,6 +3,7 @@ import time
 import random
 from threading import Thread
 from atomicInt import AtomicInteger
+from struct import pack
 
 
 class Server():
@@ -12,13 +13,19 @@ class Server():
         # UDP
         self.conn_udp = socket.socket(socket.AF_INET,
                                       socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        # struct format of messages
+        self.udp_format = 'Ibh'
+        self.magicCookie = 0xfeedbeef
+        self.message_type = 0x2
+
         # Enable broadcasting mode
         self.conn_udp.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.ip = self.conn_udp.getsockname()[0]
+        # self.ip = self.conn_udp.getsockname()[0]
+
         # TCP
         self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.tcp_ip = '172.18.0.67'
-        self.tcp_ip = ''
+        self.tcp_ip = '172.18.0.67'
+        # self.tcp_ip = ''
         server_address = (self.tcp_ip, Server.Port)
         self.conn_tcp.bind(server_address)
 
@@ -33,9 +40,15 @@ class Server():
         self.group_B_counter = AtomicInteger()
 
     def broadcasting(self):
-        message = f"Server started, listening on IP address {self.ip}"
+        # message = f"Server started, listening on IP address {self.ip}"
+        # while self.is_broadcasting:
+        #     self.conn_udp.sendto(message.encode('utf-8'),
+        #                          ('<broadcast>', Server.Port))
+        #     time.sleep(1)
+        print(f"Server started, listening on IP address {self.tcp_ip}")
+        message = pack(self.udp_format, self.magicCookie, self.message_type, Server.Port)
         while self.is_broadcasting:
-            self.conn_udp.sendto(message.encode('utf-8'),
+            self.conn_udp.sendto(message,
                                  ('<broadcast>', Server.Port))
             time.sleep(1)
 
