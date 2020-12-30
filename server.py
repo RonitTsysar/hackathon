@@ -8,7 +8,8 @@ from struct import pack
 from struct import calcsize
 
 class Server():
-    Port = 13117
+    PORT = 13117
+    TCP_PORT = 1818
 
     def __init__(self):
         # UDP
@@ -25,9 +26,9 @@ class Server():
 
         # TCP
         self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.tcp_ip = '172.18.0.67'
-        self.tcp_ip = ''
-        server_address = (self.tcp_ip, Server.Port)
+        self.tcp_ip = '172.18.0.67'
+        # self.tcp_ip = ''
+        server_address = (self.tcp_ip, Server.TCP_PORT)
         self.conn_tcp.bind(server_address)
 
         self.is_broadcasting = True
@@ -44,10 +45,10 @@ class Server():
         # TODO - change the print - not use self.tcp_ip
         print(f"{colors.Magenta}Server started, listening on IP address {self.tcp_ip}{colors.Reset}")
 
-        message = pack(self.udp_format, self.magicCookie, self.message_type, Server.Port)
+        message = pack(self.udp_format, self.magicCookie, self.message_type, Server.TCP_PORT)
         while self.is_broadcasting:
             self.conn_udp.sendto(message,
-                                 ('<broadcast>', Server.Port))
+                                 ('<broadcast>', Server.PORT))
             time.sleep(1)
 
     def handle_clients(self, conn, ip, port):
@@ -107,9 +108,9 @@ class Server():
                 pass
 
         self.clean_up()
-        print(f"{colors.Yellow}======================================={colors.Reset}​")
-        print(f"{colors.Magenta}Game over, sending out offerrequests...{colors.Reset}​")
-        print(f"{colors.Yellow}======================================={colors.Reset}​")
+        print(f"{colors.Yellow}========================================={colors.Reset}​")
+        print(f"{colors.Magenta}Game over, sending out offer requests...{colors.Reset}​")
+        print(f"{colors.Yellow}========================================={colors.Reset}​")
 
     def handle_group_A_game(self, group_name):
         conn = self.game_groups[group_name][0]
@@ -132,7 +133,7 @@ class Server():
     def assign_random_groups(self):
         # no game if there are no clients
         if len(self.game_groups) < 1:
-            print(f"{colors.Yellow}Threr are less then 1 client connected in this game.{colors.Reset}")
+            print(f"{colors.Yellow}There are less then 1 client connected in this game.{colors.Reset}")
             return
 
         half_of_groups = int(len(self.game_groups)/2)
