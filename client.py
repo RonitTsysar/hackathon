@@ -24,11 +24,14 @@ class Client():
 
         # TCP
         # self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        
+
         self.is_palying = False
 
+    def connect_tcp(self, ip):
+        self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.conn_tcp.connect((ip, Client.Port))
+
     def close(self):
-        # self.conn_udp.close()888
         self.conn_tcp.close()
         self.conn_tcp = None
 
@@ -42,7 +45,6 @@ class Client():
                 message = struct.unpack(self.udp_format, data)
             except struct.error:
                 return
-            print(f"message -> {message}")
             if message[0] == self.magicCookie and message[1] == self.message_type:
                 print(f"Received offer from {addr[0]}, attempting to connect...")
                 break
@@ -52,14 +54,12 @@ class Client():
         try:
             # TODO - fix that
             time.sleep(1)
-
-            self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.conn_tcp.connect((ip, Client.Port))
-        except Exception:
-            print(" connection failed ")
+            self.connect_tcp(ip)
+        except Exception as e:
+            print(f" connection failed {e}")
             self.is_palying = False
             return
-            
+
         message = "RonitGal"
         self.conn_tcp.send(message.encode('utf-8'))
         self.is_palying = True
@@ -67,14 +67,14 @@ class Client():
 
     def game_mode(self):
         with Input(keynames="curtsies", sigint_event=True) as input_generator:
-            try:
-                while self.is_palying:
-                    key = input_generator.send(0.1)
-                    if key:
-                        print(key)
-                        self.conn_tcp.send((key + '\n').encode('utf-8'))
-            except Exception:
-                return
+            # try:
+            while self.is_palying:
+                key = input_generator.send(0.1)
+                if key:
+                    print(key)
+                    self.conn_tcp.send((key + '\n').encode('utf-8'))
+            # except Exception:
+            #     return
 
     def recv_msgs(self):
         while True:
@@ -84,7 +84,6 @@ class Client():
                 self.is_palying = False
                 return
             print(message.decode())
-
 
 
 if __name__ == "__main__":

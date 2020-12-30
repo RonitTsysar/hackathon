@@ -25,10 +25,11 @@ class Server():
 
         # TCP
         self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.tcp_ip = '172.18.0.67'
+        # self.tcp_ip = '172.18.0.67'
+        self.tcp_ip = ''
         server_address = (self.tcp_ip, Server.Port)
         self.conn_tcp.bind(server_address)
-        
+
         self.is_broadcasting = True
         self.is_palying = True
         # check if need synchronized dict
@@ -38,7 +39,6 @@ class Server():
         self.group_2 = []
         self.group_A_counter = AtomicInteger()
         self.group_B_counter = AtomicInteger()
-
 
     def broadcasting(self):
         # TODO - change the print - not use self.tcp_ip
@@ -52,13 +52,14 @@ class Server():
 
     def handle_clients(self, conn, ip, port):
         print('Connected by', self.tcp_ip)
+        
         group_name = conn.recv(1024).decode()
+        print(f"Connected by -- > {group_name}")
+
         self.game_groups[group_name] = [conn, ip, port]
         self.tcp_conns.append(conn)
 
     def waiting_for_clients(self):
-        # timeout for listening
-        #self.open_tcp_connectio()
 
         self.conn_tcp.settimeout(10)
         self.conn_tcp.listen()
@@ -93,9 +94,12 @@ class Server():
             print('its a tie\nCongratulations to the winners')
 
         for conn in self.tcp_conns:
-            conn.shutdown(socket.SHUT_RD)
-            # conn.send("try to close".encode('utf-8'))
-            conn.close()
+            try:
+                conn.shutdown(socket.SHUT_RD)
+                # conn.send("try to close".encode('utf-8'))
+                conn.close()
+            except:
+                pass
 
         print(" AFTER CLOSE CONNS")
         self.clean_up()
@@ -113,18 +117,25 @@ class Server():
     def handle_group_B_game(self, group_name):
         conn = self.game_groups[group_name][0]
         while self.is_palying:
-            try:
-                data = conn.recv(1024).decode("utf-8").rstrip()
-                self.group_B_counter.inc()
-            except Exception:
-                pass
+            # try:
+            data = conn.recv(1024).decode("utf-8").rstrip()
+            self.group_B_counter.inc()
+            # except Exception:
+            #     pass
 
     def assign_random_groups(self):
         print(f" number of groups ------> {len(self.game_groups)}")
 
+        # no game if there are no clients
+        if len(self.game_groups) < 2:
+            print("Threr are less then 2 clients connected in this game")
+            return
+
         half_of_groups = int(len(self.game_groups)/2)
         all_groups = list(self.game_groups.keys())
         indices_to_choose = [i for i in range(len(self.game_groups))]
+
+        self.is_palying = True
 
         for i in range(half_of_groups):
             chosen_idx = random.randint(0, len(indices_to_choose)-1)
@@ -150,7 +161,6 @@ class Server():
             opening_message += group + '\n'
         opening_message += 'Start pressing keys on your keyboard as fast as you can!!'
 
-        self.is_palying = True
         # sending opening message to all clients
         for conn in self.tcp_conns:
             conn.send(opening_message.encode('utf-8'))
