@@ -25,7 +25,6 @@ class Client():
 
         # variable that helps to determine if the client is still playing or not, updated accordingly.
         self.is_palying = False
-        # name of client's team for the game
         self.name = name
 
     # initializes TCP connection with server in every game session
@@ -74,16 +73,16 @@ class Client():
     # game mode - any key press event is caught and sent to the server
     def game_mode(self):
         with Input(keynames="curtsies", sigint_event=True) as input_generator:
-            # try:
-            while self.is_palying:
-                key = input_generator.send(0.1)
-                if key:
-                    print(key)
-                    self.conn_tcp.send((key + '\n').encode('utf-8'))
-            # except Exception:
-            #     return
+            try:
+                while self.is_palying:
+                    key = input_generator.send(0.1)
+                    if key:
+                        print(key)
+                        self.conn_tcp.send((key + '\n').encode('utf-8'))
+            except Exception:
+                return
 
-    # at game mode - recieving messages from the server
+    # at game mode - receiving messages from the server
     # summary messages (game over and more...)
     def recv_msgs(self):
         while True:
@@ -106,7 +105,6 @@ if __name__ == "__main__":
 
     client = Client(name)
 
-    # Client runs "forever"
     while True:
         client.looking_for_server()
 
