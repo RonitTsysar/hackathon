@@ -44,7 +44,7 @@ class Client():
             # receive only udp messages of the format
             message = unpack(self.udp_format, data)
             if message[0] == self.magicCookie and message[1] == self.message_type:
-                print(f"Received offer from {addr}, attempting to connect...")
+                print(f"Received offer from {addr[0]}, attempting to connect...")
             break
         self.connecting_to_server(addr[0])
 
@@ -69,7 +69,7 @@ class Client():
         while True:
             message = self.conn_tcp.recv(1024)
             if not message:
-                print("----------- END -----------")
+                print("Server disconnected, listening for offer requestes...")
                 self.is_palying = False
                 return
             print(message.decode())
