@@ -139,9 +139,11 @@ class Server():
 
         for i in range(half_of_groups):
             chosen_idx = random.randint(0, len(indices_to_choose)-1)
-            indices_to_choose.remove(indices_to_choose[chosen_idx])
+            # indices_to_choose.remove(indices_to_choose[chosen_idx])
 
             group_name = all_groups[indices_to_choose[chosen_idx]]
+            indices_to_choose.remove(indices_to_choose[chosen_idx])
+            
             self.group_1.append(group_name)
             # self.tcp_conns.append(self.game_groups[group_name][0])
             Thread(target=self.handle_group_A_game, args=(group_name,), daemon=True).start()

@@ -3,12 +3,13 @@ import time
 from curtsies import Input
 from threading import Thread
 import struct
+import sys
 
 
 class Client():
     Port = 13117
 
-    def __init__(self):
+    def __init__(self, name):
         # UDP
         self.conn_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         # self.conn_udp.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)
@@ -19,13 +20,15 @@ class Client():
         self.message_type = 0x2
 
         # Enable broadcasting mode
-        self.conn_udp.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        # self.conn_udp.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.conn_udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.conn_udp.bind(("", Client.Port))
 
         # TCP
         # self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         self.is_palying = False
+        self.name = name
 
     def connect_tcp(self, ip):
         self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -60,8 +63,8 @@ class Client():
             self.is_palying = False
             return
 
-        message = "RonitGal"
-        self.conn_tcp.send(message.encode('utf-8'))
+        # message = "RonitGal"
+        self.conn_tcp.send(self.name.encode('utf-8'))
         self.is_palying = True
 
 
@@ -78,7 +81,12 @@ class Client():
 
     def recv_msgs(self):
         while True:
-            message = self.conn_tcp.recv(1024)
+            try:
+                message = self.conn_tcp.recv(1024)
+            except:
+                print("Server disconnected, listening for offer requestes...")
+                self.is_palying = False
+                return
             if not message:
                 print("Server disconnected, listening for offer requestes...")
                 self.is_palying = False
@@ -87,7 +95,9 @@ class Client():
 
 
 if __name__ == "__main__":
-    client = Client()
+    name = str(sys.argv[1])
+
+    client = Client(name)
     while True:
         client.looking_for_server()
 
