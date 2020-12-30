@@ -2,6 +2,7 @@ import socket
 import time
 from curtsies import Input
 from threading import Thread
+from struct import unpack
 
 
 class Client():
@@ -11,6 +12,11 @@ class Client():
         # UDP
         self.conn_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         # self.conn_udp.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)
+
+        # struct format of messages
+        self.udp_format = 'Ibh'
+        self.magicCookie = 0xfeedbeef
+        self.message_type = 0x2
 
         # Enable broadcasting mode
         self.conn_udp.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -24,11 +30,21 @@ class Client():
         self.conn_tcp.close()
 
     def looking_for_server(self):
+        # print("Client started, listening for offer requests...")
+        # data, addr = None, None
+        # while True:
+        #     data, addr = self.conn_udp.recvfrom(1024)
+        #     print(f"Received offer from {addr}, attempting to connect...")
+        #     break
+        # self.connecting_to_server(addr[0])
         print("Client started, listening for offer requests...")
         data, addr = None, None
         while True:
             data, addr = self.conn_udp.recvfrom(1024)
-            print(f"Received offer from {addr}, attempting to connect...")
+            # receive only udp messages of the format
+            message = unpack(self.udp_format, data)
+            if message[0] == self.magicCookie and message[1] == self.message_type:
+                print(f"Received offer from {addr}, attempting to connect...")
             break
         self.connecting_to_server(addr[0])
 
