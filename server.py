@@ -6,6 +6,7 @@ from threading import Thread
 from atomicInt import AtomicInteger
 from struct import pack
 from struct import calcsize
+from scapy.arch import get_if_addr
 
 class Server():
     PORT = 13117
@@ -16,7 +17,7 @@ class Server():
         self.conn_udp = socket.socket(socket.AF_INET,
                                       socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         # struct format of messages
-        self.udp_format = 'Ibh'
+        self.udp_format = 'IbH'
         self.magicCookie = 0xfeedbeef
         self.message_type = 0x2
 
@@ -26,7 +27,9 @@ class Server():
 
         # TCP
         self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.tcp_ip = '172.18.0.67'
+        # self.tcp_ip = '172.18.0.67'
+        self.tcp_ip = get_if_addr('eth1')
+
         # self.tcp_ip = ''
         server_address = (self.tcp_ip, Server.TCP_PORT)
         self.conn_tcp.bind(server_address)
@@ -47,8 +50,10 @@ class Server():
 
         message = pack(self.udp_format, self.magicCookie, self.message_type, Server.TCP_PORT)
         while self.is_broadcasting:
+            # self.conn_udp.sendto(message,
+            #                      ('<broadcast>', Server.PORT))
             self.conn_udp.sendto(message,
-                                 ('<broadcast>', Server.PORT))
+                                 ('172.1.255.255', Server.PORT))
             time.sleep(1)
 
     def handle_clients(self, conn, ip, port):
