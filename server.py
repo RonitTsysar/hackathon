@@ -25,8 +25,8 @@ class Server():
 
         # TCP
         self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.tcp_ip = '172.18.0.67'
-        self.tcp_ip = ''
+        self.tcp_ip = '172.18.0.67'
+        # self.tcp_ip = ''
         server_address = (self.tcp_ip, Server.Port)
         self.conn_tcp.bind(server_address)
 
@@ -51,10 +51,10 @@ class Server():
             time.sleep(1)
 
     def handle_clients(self, conn, ip, port):
-        print('Connected by', self.tcp_ip)
+        # print('Connected by', self.tcp_ip)
         
         group_name = conn.recv(1024).decode()
-        print(f"Connected by -- > {group_name}")
+        # print(f"Connected by -- > {group_name}")
 
         self.game_groups[group_name] = [conn, ip, port]
         self.tcp_conns.append(conn)
@@ -80,28 +80,35 @@ class Server():
         a = self.group_A_counter.value
         b = self.group_B_counter.value
 
-        print("Game over!")
-        print(f'''Group 1 typed in {a} characters.Group 2 typed in {b} characters.''')
+        # prepering the summary message
+        summary_message = 'Game over!\nGroup 1 typed in ' + str(a) + ' characters. Group 2 typed in ' + str(b) + ' characters.\n'
         if(a > b):
-            print('Group 1 wins!\nCongratulations to the winners:\n==')
+            summary_message += 'Group 1 wins!\nCongratulations to the winners:\n=='
             for group in self.group_1:
-                print(group)
+                summary_message += group + '\n'
+        
         elif(b > a):
-            print('Group 2 wins!\nCongratulations to the winners:\n==')
+            summary_message += 'Group 2 wins!\nCongratulations to the winners:\n=='
             for group in self.group_2:
-                print(group)
+                summary_message += group + '\n'
+
         else:
-            print('its a tie\nCongratulations to the winners')
+            summary_message += 'its a tie!\nCongratulations to the winners.'
+
+        # sending summary message to all clients
+        # print(summary_message)
+        for conn in self.tcp_conns:
+            conn.send(summary_message.encode('utf-8'))
+
 
         for conn in self.tcp_conns:
             try:
                 conn.shutdown(socket.SHUT_RD)
-                # conn.send("try to close".encode('utf-8'))
                 conn.close()
             except:
                 pass
 
-        print(" AFTER CLOSE CONNS")
+        # print(" AFTER CLOSE CONNS")
         self.clean_up()
         print("Game over, sending out offerrequests...​")
 
@@ -124,11 +131,9 @@ class Server():
             #     pass
 
     def assign_random_groups(self):
-        print(f" number of groups ------> {len(self.game_groups)}")
-
         # no game if there are no clients
-        if len(self.game_groups) < 2:
-            print("Threr are less then 2 clients connected in this game")
+        if len(self.game_groups) < 1:
+            print("Threr are less then 1 client connected in this game.")
             return
 
         half_of_groups = int(len(self.game_groups)/2)
@@ -145,13 +150,11 @@ class Server():
             indices_to_choose.remove(indices_to_choose[chosen_idx])
             
             self.group_1.append(group_name)
-            # self.tcp_conns.append(self.game_groups[group_name][0])
             Thread(target=self.handle_group_A_game, args=(group_name,), daemon=True).start()
 
         for i in range(len(indices_to_choose)):
             group_name = all_groups[indices_to_choose[i]]
             self.group_2.append(group_name)
-            # self.tcp_conns.append(self.game_groups[group_name][0])
             Thread(target=self.handle_group_B_game, args=(group_name,), daemon=True).start()
 
         # prepering the opening message
