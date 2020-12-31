@@ -9,6 +9,7 @@ import colors
 
 class Client():
     Port = 13117
+    BUFF = 1024
 
     def __init__(self, name):
         # UDP Socket
@@ -43,7 +44,7 @@ class Client():
         print(f"{colors.Yellow}Client started, listening for offer requests...{colors.Reset}")
         data, addr = None, None
         while True:
-            data, addr = self.conn_udp.recvfrom(1024)
+            data, addr = self.conn_udp.recvfrom(Client.BUFF)
             try:
                 # receive only udp messages of the format
                 message = struct.unpack(self.udp_format, data)
@@ -87,7 +88,7 @@ class Client():
     def recv_msgs(self):
         while True:
             try:
-                message = self.conn_tcp.recv(1024)
+                message = self.conn_tcp.recv(Client.BUFF)
             except:
                 print("Server disconnected, listening for offer requestes...")
                 self.is_palying = False

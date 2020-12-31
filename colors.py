@@ -1,3 +1,4 @@
+# ANSI colors options
 Bold = "\033[1m"
 Red = "\033[31;1m"
 Green = "\033[32;1m"

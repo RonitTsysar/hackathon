@@ -9,8 +9,11 @@ from scapy.arch import get_if_addr
 
 
 class Server():
+    UDP_IP = '172.1.255.255'
     UDP_PORT = 13117
     TCP_PORT = 1818
+    BUFF = 1024
+    SUBNET = 'eth1'
 
     def __init__(self):
         self.conn_udp = socket.socket(socket.AF_INET,
@@ -24,7 +27,7 @@ class Server():
         self.conn_udp.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
         self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.tcp_ip = get_if_addr('eth1')
+        self.tcp_ip = get_if_addr(Server.SUBNET)
 
         server_address = (self.tcp_ip, Server.TCP_PORT)
         self.conn_tcp.bind(server_address)
@@ -45,11 +48,11 @@ class Server():
         message = pack(self.udp_format, self.magicCookie, self.message_type, Server.TCP_PORT)
         while self.is_broadcasting:
             self.conn_udp.sendto(message,
-                                 ('172.1.255.255', Server.UDP_PORT))
+                                 (Server.UDP_IP, Server.UDP_PORT))
             time.sleep(1)
 
     def handle_clients(self, conn, ip, port):
-        group_name = conn.recv(1024).decode()
+        group_name = conn.recv(Server.BUFF).decode()
         print(f"{colors.Bright_Magenta}     {group_name} connected with {self.tcp_ip} ip {colors.Reset} ")
 
         self.game_groups[group_name] = [conn, ip, port]
@@ -71,7 +74,7 @@ class Server():
             except socket.timeout:
                 self.is_broadcasting = False
                 break
-    
+
     # executed 10 seconds
     def game_mode(self):
         self.assign_random_groups()
@@ -97,14 +100,17 @@ class Server():
 
         # sending summary message to all clients
         for conn in self.tcp_conns:
-            conn.send(summary_message.encode('utf-8'))
+            try:
+                conn.send(summary_message.encode('utf-8'))
+            except Exception:
+                pass
 
         # close all tcp slaves connections
         for conn in self.tcp_conns:
             try:
                 conn.shutdown(socket.SHUT_RD)
                 conn.close()
-            except:
+            except Exception:
                 pass
 
         self.clean_up()
@@ -117,7 +123,7 @@ class Server():
         # while playing receiving messages from the client and count them
         while self.is_palying:
             try:
-                data = conn.recv(1024).decode("utf-8").rstrip()
+                data = conn.recv(Server.BUFF).decode("utf-8").rstrip()
                 self.group_A_counter.inc()
             except Exception:
                 pass
@@ -127,7 +133,7 @@ class Server():
         # while playing receiving messages from the client and count them
         while self.is_palying:
             try:
-                data = conn.recv(1024).decode("utf-8").rstrip()
+                data = conn.recv(Server.BUFF).decode("utf-8").rstrip()
                 self.group_B_counter.inc()
             except Exception:
                 pass
@@ -152,7 +158,7 @@ class Server():
 
             self.group_1.append(group_name)
             Thread(target=self.handle_group_A_game, args=(group_name,), daemon=True).start()
-        
+
         # half of the quantity goes to group 2
         for i in range(len(indices_to_choose)):
             group_name = all_groups[indices_to_choose[i]]
@@ -170,7 +176,10 @@ class Server():
 
         # sending opening message to all clients
         for conn in self.tcp_conns:
-            conn.send(opening_message.encode('utf-8'))
+            try:
+                conn.send(opening_message.encode('utf-8'))
+            except Exception:
+                pass
 
     # reset all the params to the initial value, before new "round"
     def clean_up(self):
