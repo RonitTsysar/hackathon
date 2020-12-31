@@ -5,15 +5,14 @@ import colors
 from threading import Thread
 from atomicInt import AtomicInteger
 from struct import pack
-from struct import calcsize
 from scapy.arch import get_if_addr
 
+
 class Server():
-    PORT = 13117
+    UDP_PORT = 13117
     TCP_PORT = 1818
 
     def __init__(self):
-        # UDP
         self.conn_udp = socket.socket(socket.AF_INET,
                                       socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         # struct format of messages
@@ -23,20 +22,15 @@ class Server():
 
         # Enable broadcasting mode
         self.conn_udp.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        # self.ip = self.conn_udp.getsockname()[0]
 
-        # TCP
         self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.tcp_ip = '172.18.0.67'
         self.tcp_ip = get_if_addr('eth1')
 
-        # self.tcp_ip = ''
         server_address = (self.tcp_ip, Server.TCP_PORT)
         self.conn_tcp.bind(server_address)
 
         self.is_broadcasting = True
         self.is_palying = True
-        # check if need synchronized dict
         self.game_groups = {}
         self.tcp_conns = []
         self.group_1 = []
@@ -44,16 +38,14 @@ class Server():
         self.group_A_counter = AtomicInteger()
         self.group_B_counter = AtomicInteger()
 
+    # broadcasting UDP message, 1 every 1 second
     def broadcasting(self):
-        # TODO - change the print - not use self.tcp_ip
         print(f"{colors.Magenta}Server started, listening on IP address {self.tcp_ip}{colors.Reset}")
 
         message = pack(self.udp_format, self.magicCookie, self.message_type, Server.TCP_PORT)
         while self.is_broadcasting:
-            # self.conn_udp.sendto(message,
-            #                      ('<broadcast>', Server.PORT))
             self.conn_udp.sendto(message,
-                                 ('172.1.255.255', Server.PORT))
+                                 ('172.1.255.255', Server.UDP_PORT))
             time.sleep(1)
 
     def handle_clients(self, conn, ip, port):
@@ -61,14 +53,17 @@ class Server():
         print(f"{colors.Bright_Magenta}     {group_name} connected with {self.tcp_ip} ip {colors.Reset} ")
 
         self.game_groups[group_name] = [conn, ip, port]
+        # collecting clients connections
         self.tcp_conns.append(conn)
 
+    # waiting for cilent to connect over TCP.
     def waiting_for_clients(self):
-
+        # TCP soclet listen only for 10 seconds
         self.conn_tcp.settimeout(10)
         self.conn_tcp.listen()
         while True:
             try:
+                # each client handle in separate thread
                 (conn, (ip, port)) = self.conn_tcp.accept()
                 Thread(target=self.handle_clients,
                        args=(conn, ip, port), daemon=True).start()
@@ -76,7 +71,8 @@ class Server():
             except socket.timeout:
                 self.is_broadcasting = False
                 break
-
+    
+    # executed 10 seconds
     def game_mode(self):
         self.assign_random_groups()
 
@@ -100,11 +96,10 @@ class Server():
             summary_message += 'its a tie!\nCongratulations to the winners.'
 
         # sending summary message to all clients
-        # print(summary_message)
         for conn in self.tcp_conns:
             conn.send(summary_message.encode('utf-8'))
 
-
+        # close all tcp slaves connections
         for conn in self.tcp_conns:
             try:
                 conn.shutdown(socket.SHUT_RD)
@@ -119,21 +114,23 @@ class Server():
 
     def handle_group_A_game(self, group_name):
         conn = self.game_groups[group_name][0]
+        # while playing receiving messages from the client and count them
         while self.is_palying:
-            # try:
+            try:
                 data = conn.recv(1024).decode("utf-8").rstrip()
                 self.group_A_counter.inc()
-            # except Exception:
-                # pass
+            except Exception:
+                pass
 
     def handle_group_B_game(self, group_name):
         conn = self.game_groups[group_name][0]
+        # while playing receiving messages from the client and count them
         while self.is_palying:
-            # try:
-            data = conn.recv(1024).decode("utf-8").rstrip()
-            self.group_B_counter.inc()
-            # except Exception:
-            #     pass
+            try:
+                data = conn.recv(1024).decode("utf-8").rstrip()
+                self.group_B_counter.inc()
+            except Exception:
+                pass
 
     def assign_random_groups(self):
         # no game if there are no clients
@@ -147,16 +144,16 @@ class Server():
 
         self.is_palying = True
 
+        # half of the quantity goes to group 1
         for i in range(half_of_groups):
             chosen_idx = random.randint(0, len(indices_to_choose)-1)
-            # indices_to_choose.remove(indices_to_choose[chosen_idx])
-
             group_name = all_groups[indices_to_choose[chosen_idx]]
             indices_to_choose.remove(indices_to_choose[chosen_idx])
-            
+
             self.group_1.append(group_name)
             Thread(target=self.handle_group_A_game, args=(group_name,), daemon=True).start()
-
+        
+        # half of the quantity goes to group 2
         for i in range(len(indices_to_choose)):
             group_name = all_groups[indices_to_choose[i]]
             self.group_2.append(group_name)
@@ -175,9 +172,9 @@ class Server():
         for conn in self.tcp_conns:
             conn.send(opening_message.encode('utf-8'))
 
+    # reset all the params to the initial value, before new "round"
     def clean_up(self):
         self.is_broadcasting = True
-        # self.is_palying = True
 
         self.game_groups = {}
         self.tcp_conns = []
@@ -204,10 +201,6 @@ class Server():
 
             self.finish_game()
 
-        # cleaning for another game
-
-
 if __name__ == "__main__":
-
     server = Server()
     server.serve()
