@@ -9,7 +9,7 @@ from scapy.arch import get_if_addr
 
 
 class Server():
-    UDP_IP = '172.1.255.255'
+    BROADCAST_SUFFIX = '255.255'
     UDP_PORT = 13117
     TCP_PORT = 1818
     BUFF = 1024
@@ -27,9 +27,13 @@ class Server():
         self.conn_udp.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
         self.conn_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.tcp_ip = get_if_addr(Server.SUBNET)
 
-        server_address = (self.tcp_ip, Server.TCP_PORT)
+        self.ip = get_if_addr(Server.SUBNET)
+        self.subnet_parts = self.ip.split('.')
+        # concatenates subnet prefix with broadcast suffix
+        self.broadcast_ip = self.subnet_parts[0]+ '.' + self.subnet_parts[1] + '.' + Server.BROADCAST_SUFFIX
+
+        server_address = (self.ip, Server.TCP_PORT)
         self.conn_tcp.bind(server_address)
 
         self.is_broadcasting = True
@@ -43,17 +47,19 @@ class Server():
 
     # broadcasting UDP message, 1 every 1 second
     def broadcasting(self):
-        print(f"{colors.Magenta}Server started, listening on IP address {self.tcp_ip}{colors.Reset}")
+        print(f"{colors.Magenta}Server started, listening on IP address {self.ip}{colors.Reset}")
 
         message = pack(self.udp_format, self.magicCookie, self.message_type, Server.TCP_PORT)
         while self.is_broadcasting:
+            # self.conn_udp.sendto(message,
+            #                      (Server.UDP_IP, Server.UDP_PORT))
             self.conn_udp.sendto(message,
-                                 (Server.UDP_IP, Server.UDP_PORT))
+                                 (self.broadcast_ip, Server.UDP_PORT))
             time.sleep(1)
 
     def handle_clients(self, conn, ip, port):
         group_name = conn.recv(Server.BUFF).decode()
-        print(f"{colors.Bright_Magenta}     {group_name} connected with {self.tcp_ip} ip {colors.Reset} ")
+        print(f"{colors.Bright_Magenta}     {group_name} connected with {self.ip} ip {colors.Reset} ")
 
         self.game_groups[group_name] = [conn, ip, port]
         # collecting clients connections
@@ -211,5 +217,12 @@ class Server():
             self.finish_game()
 
 if __name__ == "__main__":
+    # tcp_ip = get_if_addr(Server.SUBNET)
+    # print(tcp_ip)
+    # subnet_prefix = tcp_ip.split('.')
+    # BRODCAST = '255.255'
+    # x = subnet_prefix[0]+ '.' + subnet_prefix[1] + '.' + BRODCAST
+    # print(x)
+
     server = Server()
     server.serve()
